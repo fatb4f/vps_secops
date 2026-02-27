@@ -1,0 +1,214 @@
+syntax = "proto3";
+
+package vps_secops.security.v1;
+
+option java_multiple_files = true;
+option java_package = "local.vpssecops.security.v1";
+option go_package = "vpssecops/api/proto/security/v1;securityv1";
+
+// Shared host event envelope aligned with event_envelope_v1.schema.json.
+message EventEnvelope {
+  string schema_version = 1;      // event_envelope_v1
+  string event_id = 2;
+  EventType event_type = 3;
+  string host_id = 4;
+  string collected_at_utc = 5;    // RFC3339 UTC
+  repeated string labels = 6;
+
+  oneof payload {
+    OsquerySnapshotEvent osquery_snapshot = 10;
+    TriageDecision triage_decision = 11;
+    GuardrailAction guardrail_action = 12;
+    Incident incident = 13;
+  }
+}
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_OSQUERY_SNAPSHOT = 1;
+  EVENT_TYPE_TRIAGE_DECISION = 2;
+  EVENT_TYPE_GUARDRAIL_ACTION = 3;
+  EVENT_TYPE_INCIDENT_PROMOTED = 4;
+}
+
+// Derived from osquery snapshot logger structure.
+message OsquerySnapshotEvent {
+  string schema_version = 1; // osquery_snapshot_event_v1
+  string name = 2;
+  string action = 3;         // snapshot
+  string host_identifier = 4;
+  string calendar_time = 5;
+  int64 unix_time = 6;
+  int64 epoch = 7;
+  int64 counter = 8;
+  bool numerics = 9;
+
+  map<string, string> decorations = 10;
+  repeated KeyValueRow snapshot_rows = 11;
+}
+
+message KeyValueRow {
+  map<string, string> fields = 1;
+}
+
+message BaselinePack {
+  string schema_version = 1;   // baseline_pack_v1
+  string collector = 2;        // osquery
+  string host = 3;
+  string generated_at_utc = 4;
+  int64 window_seconds = 5;
+  int64 window_start_unix = 6;
+  int64 window_end_unix = 7;
+  repeated OsquerySnapshotEvent events = 8;
+  string manifest_sha256 = 9;
+}
+
+message IOC {
+  IOCType type = 1;
+  string value = 2;
+}
+
+enum IOCType {
+  IOC_TYPE_UNSPECIFIED = 0;
+  IOC_TYPE_DOMAIN = 1;
+  IOC_TYPE_IP = 2;
+  IOC_TYPE_HASH = 3;
+  IOC_TYPE_PATH = 4;
+  IOC_TYPE_PROCESS = 5;
+  IOC_TYPE_USER = 6;
+}
+
+message TriageDecision {
+  string schema_version = 1; // triage_decision_v1
+  Decision decision = 2;
+  double confidence = 3;     // 0..1
+  string rule_id = 4;
+  string policy_version = 5;
+  repeated IOC iocs = 6;
+  repeated string evidence_refs = 7;
+  NextAction recommended_next_action = 8;
+  string notes = 9;
+}
+
+enum Decision {
+  DECISION_UNSPECIFIED = 0;
+  DECISION_CLOSE_AS_NOISE = 1;
+  DECISION_MONITOR = 2;
+  DECISION_PROMOTE_TO_AGENT = 3;
+  DECISION_PROMOTE_AND_RESPOND = 4;
+}
+
+enum NextAction {
+  NEXT_ACTION_UNSPECIFIED = 0;
+  NEXT_ACTION_NONE = 1;
+  NEXT_ACTION_RUN_ENRICHMENT_SWEEP = 2;
+  NEXT_ACTION_OPEN_INCIDENT = 3;
+  NEXT_ACTION_RUN_SAFE_RESPONSE = 4;
+}
+
+message GuardrailAction {
+  string schema_version = 1; // guardrail_action_v1
+  string action_id = 2;
+  GuardrailActionType action_type = 3;
+  string target = 4;
+  GuardrailActionStatus status = 5;
+  string started_at_utc = 6;
+  string ended_at_utc = 7;
+  string result_message = 8;
+  string rollback_ref = 9;
+}
+
+enum GuardrailActionType {
+  GUARDRAIL_ACTION_TYPE_UNSPECIFIED = 0;
+  GUARDRAIL_ACTION_TYPE_COLLECT_FULL_PACK = 1;
+  GUARDRAIL_ACTION_TYPE_COLLECT_MINI_PACK = 2;
+  GUARDRAIL_ACTION_TYPE_RESTART_SERVICE = 3;
+  GUARDRAIL_ACTION_TYPE_BLOCK_IOC = 4;
+  GUARDRAIL_ACTION_TYPE_ISOLATE_WORKFLOW = 5;
+}
+
+enum GuardrailActionStatus {
+  GUARDRAIL_ACTION_STATUS_UNSPECIFIED = 0;
+  GUARDRAIL_ACTION_STATUS_SUCCESS = 1;
+  GUARDRAIL_ACTION_STATUS_FAILED = 2;
+  GUARDRAIL_ACTION_STATUS_SKIPPED = 3;
+}
+
+message Incident {
+  string incident_id = 1;
+  string opened_at_utc = 2;
+  string host_id = 3;
+  string severity = 4;
+  string summary = 5;
+  repeated string evidence_refs = 6;
+  IncidentState state = 7;
+}
+
+enum IncidentState {
+  INCIDENT_STATE_UNSPECIFIED = 0;
+  INCIDENT_STATE_OPEN = 1;
+  INCIDENT_STATE_MONITORING = 2;
+  INCIDENT_STATE_CONTAINED = 3;
+  INCIDENT_STATE_CLOSED = 4;
+}
+
+message IngestPackRequest {
+  BaselinePack pack = 1;
+}
+
+message IngestPackResponse {
+  string status = 1; // accepted/rejected
+  string pack_id = 2;
+  string message = 3;
+}
+
+message RunTriageRequest {
+  EventEnvelope trigger = 1;
+}
+
+message RunTriageResponse {
+  TriageDecision decision = 1;
+}
+
+message ExecuteGuardrailActionRequest {
+  GuardrailAction action = 1;
+}
+
+message ExecuteGuardrailActionResponse {
+  GuardrailAction action = 1;
+}
+
+message PromoteIncidentRequest {
+  TriageDecision decision = 1;
+}
+
+message PromoteIncidentResponse {
+  Incident incident = 1;
+}
+
+message PipelineHealthRequest {}
+
+message PipelineHealthResponse {
+  string status = 1; // ok/warn/critical
+  int64 latest_pack_age_sec = 2;
+  int64 packs_last_24h = 3;
+  int64 expected_packs_last_24h = 4;
+  double coverage_pct = 5;
+}
+
+service CollectorService {
+  rpc IngestPack(IngestPackRequest) returns (IngestPackResponse);
+}
+
+service TriageService {
+  rpc RunTriage(RunTriageRequest) returns (RunTriageResponse);
+  rpc PromoteIncident(PromoteIncidentRequest) returns (PromoteIncidentResponse);
+}
+
+service GuardrailService {
+  rpc ExecuteGuardrailAction(ExecuteGuardrailActionRequest) returns (ExecuteGuardrailActionResponse);
+}
+
+service HealthService {
+  rpc GetPipelineHealth(PipelineHealthRequest) returns (PipelineHealthResponse);
+}

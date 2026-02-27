@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:vpssecops:schema:baseline_pack_v1.schema",
+  "title": "BaselinePackV1",
+  "description": "5-minute baseline pack generated from osquery snapshot logs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "collector",
+    "host",
+    "generated_at_utc",
+    "window_seconds",
+    "window_start_unix",
+    "window_end_unix",
+    "events"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "baseline_pack_v1"
+    },
+    "collector": {
+      "const": "osquery"
+    },
+    "host": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "window_seconds": {
+      "type": "integer",
+      "minimum": 60
+    },
+    "window_start_unix": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "window_end_unix": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "./osquery_snapshot_event_v1.schema.json"
+      }
+    },
+    "manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

@@ -1,0 +1,171 @@
+openapi: 3.1.0
+info:
+  title: VPS SecOps Control Plane API
+  version: 0.1.0
+  summary: API spec derived from canonical JSON schemas built on osquery baseline structures.
+servers:
+  - url: https://secops.example.local
+paths:
+  /v1/packs/ingest:
+    post:
+      summary: Ingest baseline pack
+      operationId: ingestPack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../../schemas/osquery/baseline_pack_v1.schema.json
+      responses:
+        '202':
+          description: Accepted for verification and indexing
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status, pack_id]
+                properties:
+                  status:
+                    type: string
+                    const: accepted
+                  pack_id:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/packs:
+    get:
+      summary: List packs
+      operationId: listPacks
+      parameters:
+        - in: query
+          name: host
+          schema:
+            type: string
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Pack list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [pack_id, host, generated_at_utc]
+                  properties:
+                    pack_id:
+                      type: string
+                    host:
+                      type: string
+                    generated_at_utc:
+                      type: string
+                      format: date-time
+  /v1/triage/run:
+    post:
+      summary: Run initial enrichment triage
+      operationId: runTriage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../../schemas/common/event_envelope_v1.schema.json
+      responses:
+        '200':
+          description: Triage completed
+          content:
+            application/json:
+              schema:
+                $ref: ../../schemas/triage/triage_decision_v1.schema.json
+  /v1/incidents/promote:
+    post:
+      summary: Promote triage outcome into an incident
+      operationId: promoteIncident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../../schemas/triage/triage_decision_v1.schema.json
+      responses:
+        '201':
+          description: Incident created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [incident_id, status]
+                properties:
+                  incident_id:
+                    type: string
+                  status:
+                    type: string
+                    const: opened
+  /v1/guardrails/execute:
+    post:
+      summary: Execute approved safe automated response
+      operationId: executeGuardrailAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../../schemas/guardrail/guardrail_action_v1.schema.json
+      responses:
+        '200':
+          description: Action execution result
+          content:
+            application/json:
+              schema:
+                $ref: ../../schemas/guardrail/guardrail_action_v1.schema.json
+  /v1/health/pipeline:
+    get:
+      summary: Pipeline health and freshness
+      operationId: getPipelineHealth
+      responses:
+        '200':
+          description: Current pipeline health
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, latest_pack_age_sec, packs_last_24h]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok, warn, critical]
+                  latest_pack_age_sec:
+                    type: integer
+                    minimum: 0
+                  packs_last_24h:
+                    type: integer
+                    minimum: 0
+                  expected_packs_last_24h:
+                    type: integer
+                    minimum: 1
+                  coverage_pct:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+components:
+  responses:
+    BadRequest:
+      description: Invalid request body
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: string

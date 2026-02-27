@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:vpssecops:schema:osquery_snapshot_event_v1.schema",
+  "title": "OsquerySnapshotEventV1",
+  "description": "Derived directly from osquery filesystem logger snapshot events.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "name",
+    "action",
+    "hostIdentifier",
+    "calendarTime",
+    "unixTime",
+    "snapshot"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": [
+        "baseline_system_info",
+        "baseline_os_version",
+        "baseline_users",
+        "baseline_groups",
+        "baseline_listening_ports",
+        "baseline_outbound_sockets",
+        "baseline_routes",
+        "baseline_dns_resolvers",
+        "baseline_systemd_units",
+        "baseline_packages",
+        "baseline_cron"
+      ]
+    },
+    "action": {
+      "const": "snapshot"
+    },
+    "hostIdentifier": {
+      "type": "string"
+    },
+    "calendarTime": {
+      "type": "string"
+    },
+    "unixTime": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "epoch": {
+      "type": "integer"
+    },
+    "counter": {
+      "type": "integer"
+    },
+    "numerics": {
+      "type": "boolean"
+    },
+    "decorations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null"
+        ]
+      }
+    },
+    "snapshot": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

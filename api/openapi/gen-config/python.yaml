@@ -1,0 +1,4 @@
+packageName: vps_secops_client
+projectName: vps-secops-client
+packageVersion: 0.1.0
+hideGenerationTimestamp: true

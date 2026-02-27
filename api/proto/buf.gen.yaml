@@ -1,0 +1,10 @@
+version: v1
+plugins:
+  - plugin: buf.build/protocolbuffers/python
+    out: ../../clients/python_proto
+  - plugin: buf.build/grpc/python
+    out: ../../clients/python_proto
+  - plugin: buf.build/bufbuild/es
+    out: ../../clients/typescript_proto
+    opt:
+      - target=ts

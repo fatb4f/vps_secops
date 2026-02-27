@@ -1,0 +1,4 @@
+npmName: "@vps-secops/client"
+npmVersion: "0.1.0"
+withoutRuntimeChecks: false
+supportsES6: true

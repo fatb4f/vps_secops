@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:vpssecops:schema:event_envelope_v1.schema",
+  "title": "EventEnvelopeV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_type",
+    "host_id",
+    "collected_at_utc",
+    "payload"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "event_envelope_v1"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 8
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "osquery.snapshot",
+        "triage.decision",
+        "guardrail.action",
+        "incident.promoted"
+      ]
+    },
+    "host_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "collected_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

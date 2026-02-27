@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:vpssecops:schema:guardrail_action_v1.schema",
+  "title": "GuardrailActionV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "action_id",
+    "action_type",
+    "target",
+    "status",
+    "started_at_utc",
+    "ended_at_utc"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "guardrail_action_v1"
+    },
+    "action_id": {
+      "type": "string"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "collect_full_pack",
+        "collect_mini_pack",
+        "restart_service",
+        "block_ioc",
+        "isolate_workflow"
+      ]
+    },
+    "target": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed",
+        "skipped"
+      ]
+    },
+    "started_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "result_message": {
+      "type": "string"
+    },
+    "rollback_ref": {
+      "type": "string"
+    }
+  }
+}
