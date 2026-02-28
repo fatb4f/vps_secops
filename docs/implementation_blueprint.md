@@ -27,6 +27,7 @@ This document extends `docs/proposal.v2.md` with implementation details for:
 - `triage_decision_v1`: machine decision output with confidence/evidence refs.
 - `guardrail_action_v1`: automated action intent + result.
 - `incident_v1`: promotion artifact.
+- `playbook_step_v1`: normalized execution step derived from CACAO playbook actions.
 
 ## 2. API-Spec Plan
 
@@ -48,6 +49,15 @@ This document extends `docs/proposal.v2.md` with implementation details for:
 - `TriageService`: interpret trigger, correlate dependencies, IOC extraction.
 - `GuardrailService`: policy evaluation and action dispatch.
 - `AgentService`: scoped DFIR playbook execution.
+
+### 2.4 Playbook and Response Standards
+- Canonical playbook format: CACAO-aligned playbooks (YAML in repo, validated in CI).
+- Response technique taxonomy: RE&CT mappings for each containment/recovery action.
+- Policy requirement: every executable action must have:
+  - `cacao_step_id`
+  - `rect_technique_id`
+  - `action_type` (typed, allowlisted)
+  - gating metadata (confidence threshold, approval level, rollback strategy)
 
 ## 3. Sensors and Guardrails
 
@@ -73,6 +83,17 @@ This document extends `docs/proposal.v2.md` with implementation details for:
 - restart known-safe service units.
 - temporary policy block on known bad IOC destinations.
 - isolate suspicious workflow path (gated, reversible).
+
+### 3.4 Containment Ladder (Two-host profile)
+- `contain_soft`:
+  - apply DNS sinkhole policy for known bad domains
+  - maintain endpoint connectivity for telemetry and triage
+- `contain_medium`:
+  - trigger Mullvad lockdown/killswitch profile
+  - enforce egress allowlist for only required control-plane endpoints
+- `contain_hard` (high-gate):
+  - isolate host workflow/network
+  - suspend non-essential services until operator release
 
 All actions require:
 - policy precondition match
@@ -178,15 +199,17 @@ All actions require:
 - `restart_service`
 - `block_ioc` (gated)
 - `isolate_workflow` (high-gate only)
+- `set_containment_level` (`soft|medium|hard`, gated by policy)
 
 ### 6.6 Feedback loop integration
 - watcher emits outcome labels and action impact fields for every execution
 - policy tuning consumes watcher outputs to update suppression/thresholds and reduce false positives
 
 ## 7. Immediate Implementation Order
-1. Freeze JSON Schemas for `baseline_pack_v1` and `triage_decision_v1`.
-2. Implement `POST /v1/packs/ingest` + manifest verification.
-3. Add trigger->sweep pipeline with deterministic JSON output.
-4. Wire watchctl guardrails to emit `telemetry_event_v1`.
-5. Add incident promotion endpoint + artifact creation.
-6. Integrate first agent skill chain in read-only mode.
+1. Freeze JSON Schemas for `baseline_pack_v1`, `triage_decision_v1`, and `playbook_step_v1`.
+2. Add CACAO playbook schema validation and RE&CT mapping checks in CI.
+3. Implement `POST /v1/packs/ingest` + manifest verification.
+4. Add trigger->sweep pipeline with deterministic JSON output.
+5. Wire watchctl guardrails to emit `telemetry_event_v1`.
+6. Add incident promotion endpoint + artifact creation.
+7. Integrate first agent skill chain in read-only mode.
